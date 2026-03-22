@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>White Magic — Preset Preview · Loui.61</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0b09;
+  --s1:#151310;
+  --s2:#1e1b16;
+  --border:#2a2720;
+  --gold:#c8a46a;
+  --gold2:#8c6e3f;
+  --text:#ede6d6;
+  --muted:#6e6454;
+  --radius:12px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300}
+body{display:flex;flex-direction:column;align-items:center;padding:40px 20px 60px;gap:32px}
+
+/* HEADER */
+.header{text-align:center;max-width:600px}
+.eyebrow{font-family:'Outfit',sans-serif;font-weight:500;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.title{font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,6vw,3.6rem);font-weight:400;line-height:1;color:var(--text);letter-spacing:-.01em}
+.title em{font-style:italic;color:var(--gold)}
+.subtitle{margin-top:12px;font-size:13px;color:var(--muted);line-height:1.6;font-weight:300;max-width:380px;margin-inline:auto}
+
+/* UPLOAD ZONE */
+.upload-zone{
+  width:100%;max-width:860px;
+  border:1.5px dashed var(--border);
+  border-radius:var(--radius);
+  background:var(--s1);
+  padding:52px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .25s,background .25s;
+  position:relative;
+}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--gold2);background:var(--s2)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{width:40px;height:40px;margin:0 auto 16px;opacity:.45}
+.upload-text{font-size:14px;color:var(--muted);line-height:1.7}
+.upload-text strong{color:var(--text);font-weight:500}
+.upload-hint{font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:.04em}
+
+/* VIEWER */
+.viewer{
+  width:100%;max-width:860px;
+  display:none;flex-direction:column;gap:16px;
+}
+.viewer.visible{display:flex}
+
+/* CANVAS WRAPPER */
+.canvas-wrapper{
+  position:relative;
+  width:100%;
+  border-radius:var(--radius);
+  overflow:hidden;
+  background:#000;
+  cursor:col-resize;
+  user-select:none;
+  touch-action:none;
+}
+.canvas-wrapper canvas{display:block;width:100%;height:auto}
+#canvasBefore{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+#canvasAfter{display:block;width:100%}
+
+/* CLIP OVERLAY */
+.clip-overlay{
+  position:absolute;inset:0;
+  pointer-events:none;
+}
+.clip-before{
+  position:absolute;top:0;left:0;bottom:0;
+  overflow:hidden;
+}
+.clip-before canvas{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  /* width set inline dynamically */
+}
+
+/* DIVIDER */
+.divider{
+  position:absolute;top:0;bottom:0;
+  width:2px;background:#fff;
+  transform:translateX(-50%);
+  pointer-events:none;
+  box-shadow:0 0 12px rgba(0,0,0,.6);
+}
+.divider-handle{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:36px;height:36px;
+  border-radius:50%;
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.5);
+}
+.divider-handle svg{display:block}
+
+/* LABELS */
+.label{
+  position:absolute;top:14px;
+  font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  padding:4px 10px;border-radius:4px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
+  pointer-events:none;
+}
+.label-before{left:14px}
+.label-after{right:14px}
+
+/* CONTROLS */
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 20px;border-radius:8px;
+  font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;border:none;text-decoration:none;
+  transition:all .2s;letter-spacing:.02em;
+}
+.btn-primary{background:var(--gold);color:#0c0b09}
+.btn-primary:hover{background:#d4b07a;transform:translateY(-1px)}
+.btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--gold2);background:var(--s1)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* LOADING */
+.loading{
+  display:none;
+  position:absolute;inset:0;
+  background:rgba(12,11,9,.85);
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+  border-radius:var(--radius);
+  backdrop-filter:blur(4px);
+}
+.loading.visible{display:flex}
+.spinner{
+  width:32px;height:32px;
+  border:2px solid var(--border);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+
+/* SAMPLE STRIP */
+.sample-strip{
+  width:100%;max-width:860px;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px 24px;
+}
+.sample-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.tone-bars{display:flex;gap:3px;height:40px;border-radius:6px;overflow:hidden}
+.tone-bar{flex:1;transition:filter .3s}
+
+/* CTA */
+.cta{
+  text-align:center;max-width:480px;
+  padding:32px 24px;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  width:100%;max-width:860px;
+}
+.cta-text{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.cta a{color:var(--gold);text-decoration:none}
+.cta a:hover{text-decoration:underline}
+
+/* FOOTER */
+.footer{font-size:11px;color:var(--muted);letter-spacing:.06em;opacity:.5}
+
+@media(max-width:480px){
+  body{padding:24px 14px 40px}
+  .title{font-size:2rem}
+  .divider-handle{width:28px;height:28px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Loui Premium Presets</div>
+  <h1 class="title">White <em>Magic</em></h1>
+  <p class="subtitle">Upload your photo and see the preset live. Drag the slider to compare before and after.</p>
+</div>
+
+<!-- UPLOAD -->
+<div class="upload-zone" id="uploadZone">
+  <input type="file" id="fileInput" accept="image/*">
+  <svg class="upload-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 26V14M14 20l6-6 6 6" stroke="#c8a46a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="4" y="4" width="32" height="32" rx="8" stroke="#c8a46a" stroke-width="1.5" opacity=".3"/>
+  </svg>
+  <div class="upload-text"><strong>Drop your photo here</strong><br>or click to browse</div>
+  <div class="upload-hint">JPG, PNG, WEBP — any size</div>
+</div>
+
+<!-- VIEWER -->
+<div class="viewer" id="viewer">
+  <div class="canvas-wrapper" id="canvasWrapper">
+    <!-- AFTER canvas (base layer) -->
+    <canvas id="canvasAfter"></canvas>
+    <!-- BEFORE clip overlay -->
+    <div class="clip-overlay">
+      <div class="clip-before" id="clipBefore">
+        <canvas id="canvasBefore" style="min-width:100%"></canvas>
+      </div>
+    </div>
+    <!-- Divider -->
+    <div class="divider" id="divider">
+      <div class="divider-handle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M5 4l-3 4 3 4M11 4l3 4-3 4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <!-- Labels -->
+    <span class="label label-before">Before</span>
+    <span class="label label-after">After</span>
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Applying preset…</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-ghost" id="btnChange">Change photo</button>
+    <a class="btn btn-primary" id="btnDownload" download="white-magic-edit.jpg">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download
+    </a>
+  </div>
+</div>
+
+<!-- TONAL CHARACTER STRIP -->
+<div class="sample-strip" id="sampleStrip">
+  <div class="sample-label">Tonal character — White Magic</div>
+  <canvas id="tonalCanvas" height="40" style="width:100%;border-radius:6px;display:block"></canvas>
+</div>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="cta-text">
+    Like what you see? Get the full <strong>White Magic</strong> preset for Lightroom and transform your photos in one click.<br>
+    Available on <a href="https://www.etsy.com/shop/LouiPhotoStudio" target="_blank">LouiPhotoStudio</a> or <a href="https://loui61.com" target="_blank">loui61.com</a>
+  </div>
+  <a href="https://loui61.com" target="_blank" class="btn btn-primary" style="margin:0 auto;display:inline-flex">Get the Preset</a>
+</div>
+
+<div class="footer">© Loui.61 — loui61.com</div>
+
+<script>
+// ─── PRESET PARAMETERS (from White Magic.xmp) ──────────────────────────────
+const PRESET = {
+  exposure:   0.25,   // stops
+  contrast:   7,
+  highlights: -59,
+  shadows:    69,
+  whites:     9,
+  blacks:     -36,
+  vibrance:   14,
+  saturation: -10,
+  grain:      8,
+  // Tone curve points (input → output, 0-255)
+  curve: [[0,41],[48,53],[111,104],[158,166],[206,230],[255,255]],
+  // HSL per-hue [Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta]
+  hue: [40, -4, -70, -31,  25, -10,  38,  26],
+  sat: [25,  37,  31, -21, -31, -48, -50,  14],
+  lum: [14,  25,  41, -11,  63,  25, -32, -45],
+};
+
+// Hue band centers & half-widths (degrees) for Lightroom-style HSL
+const HUE_BANDS = [
+  {c:  0, hw:30}, // Red    (wraps at 360)
+  {c: 30, hw:25}, // Orange
+  {c: 60, hw:25}, // Yellow
+  {c:112, hw:52}, // Green
+  {c:172, hw:38}, // Aqua
+  {c:225, hw:52}, // Blue
+  {c:275, hw:35}, // Purple
+  {c:305, hw:25}, // Magenta
+];
+
+// ─── MATH HELPERS ──────────────────────────────────────────────────────────
+function hueDist(a, b) { const d = Math.abs(a - b); return Math.min(d, 360 - d); }
+
+function rgbToHsl(r, g, b) {
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2;
+  if (max === min) return [0, 0, l];
+  const d = max - min, s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+  let h = (r===max) ? (g-b)/d+(g<b?6:0) : (g===max) ? (b-r)/d+2 : (r-g)/d+4;
+  return [h*60, s, l];
+}
+
+function hslToRgb(h, s, l) {
+  h = ((h%360)+360)%360;
+  if (s === 0) return [l, l, l];
+  const q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+  const hk = h/360;
+  return [hk+1/3, hk, hk-1/3].map(t => {
+    if (t<0) t+=1; if (t>1) t-=1;
+    if (t<1/6) return p+(q-p)*6*t;
+    if (t<1/2) return q;
+    if (t<2/3) return p+(q-p)*(2/3-t)*6;
+    return p;
+  });
+}
+
+// Monotone cubic spline → 256-entry LUT
+function buildCurveLUT(pts) {
+  const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]), n = pts.length;
+  const d = [], ms = new Array(n);
+  for (let i=0; i<n-1; i++) d.push((ys[i+1]-ys[i])/(xs[i+1]-xs[i]));
+  ms[0]=d[0]; ms[n-1]=d[n-2];
+  for (let i=1; i<n-1; i++) ms[i]=(d[i-1]+d[i])/2;
+  for (let i=0; i<n-1; i++) {
+    if (!d[i]) { ms[i]=ms[i+1]=0; continue; }
+    const a=ms[i]/d[i], b=ms[i+1]/d[i], h=Math.sqrt(a*a+b*b);
+    if (h>3) { ms[i]=3*a/h*d[i]; ms[i+1]=3*b/h*d[i]; }
+  }
+  const lut = new Uint8Array(256);
+  for (let x=0; x<256; x++) {
+    if (x<=xs[0])   { lut[x]=Math.round(ys[0]); continue; }
+    if (x>=xs[n-1]) { lut[x]=Math.round(ys[n-1]); continue; }
+    let seg=0; for (let i=0; i<n-2; i++) if (x>=xs[i+1]) seg=i+1;
+    const hw=xs[seg+1]-xs[seg], t=(x-xs[seg])/hw, t2=t*t, t3=t2*t;
+    const y=(2*t3-3*t2+1)*ys[seg]+(t3-2*t2+t)*hw*ms[seg]+(-2*t3+3*t2)*ys[seg+1]+(t3-t2)*hw*ms[seg+1];
+    lut[x]=Math.max(0,Math.min(255,Math.round(y)));
+  }
+  return lut;
+}
+
+// ─── PRE-COMPUTE LUTS ──────────────────────────────────────────────────────
+const toneLUT = buildCurveLUT(PRESET.curve);
+
+// Combined per-channel LUT (tone adjustments + custom curve)
+function buildCombinedLUT() {
+  const lut = new Uint8Array(256);
+  const expFactor = Math.pow(2, PRESET.exposure); // 1.189
+
+  for (let i=0; i<256; i++) {
+    let v = i / 255;
+
+    // Exposure
+    v *= expFactor;
+
+    // Shadows: lift dark tones (smooth weight: squared falloff)
+    const sw = Math.pow(Math.max(0, 1 - v * 2), 2);
+    v += (PRESET.shadows / 100) * 0.22 * sw;
+
+    // Highlights: pull down bright tones
+    const hw = Math.pow(Math.max(0, v * 2 - 1), 2);
+    v += (PRESET.highlights / 100) * 0.22 * hw;
+
+    // Blacks: deepen bottom end
+    const bkw = Math.pow(Math.max(0, 0.3 - v) / 0.3, 2);
+    v -= Math.abs(PRESET.blacks) / 100 * 0.12 * bkw * (PRESET.blacks < 0 ? 1 : -1);
+
+    // Whites
+    const wtw = Math.pow(Math.max(0, v - 0.7) / 0.3, 2);
+    v += (PRESET.whites / 100) * 0.1 * wtw;
+
+    // Contrast: subtle S-curve around 0.5
+    const k = PRESET.contrast / 100 * 0.3;
+    v = v + k * (v - 0.5) * (1 - Math.abs(v - 0.5) * 2);
+
+    v = Math.max(0, Math.min(1, v));
+
+    // Custom tone curve
+    lut[i] = toneLUT[Math.round(v * 255)];
+  }
+  return lut;
+}
+const masterLUT = buildCombinedLUT();
+
+// ─── PIXEL PROCESSING ──────────────────────────────────────────────────────
+function processImageData(imageData) {
+  const data = imageData.data;
+  const len = data.length;
+
+  for (let i = 0; i < len; i += 4) {
+    let r = data[i], g = data[i+1], b = data[i+2];
+
+    // 1. Apply master LUT (exposure + tonal + tone curve)
+    r = masterLUT[r]; g = masterLUT[g]; b = masterLUT[b];
+
+    // Convert to 0-1
+    let rf = r/255, gf = g/255, bf = b/255;
+
+    // 2. HSL per-hue adjustments
+    const [h, s, l] = rgbToHsl(rf, gf, bf);
+    if (s > 0.02) {
+      // Compute per-band weights
+      let wTotal = 0;
+      const ws = HUE_BANDS.map(band => {
+        const dist = hueDist(h, band.c);
+        const w = Math.max(0, 1 - (dist / band.hw) * (dist / band.hw));
+        wTotal += w; return w;
+      });
+
+      if (wTotal > 0.01) {
+        let dH=0, dS=0, dL=0;
+        for (let bi=0; bi<8; bi++) {
+          const wn = ws[bi] / wTotal;
+          dH += PRESET.hue[bi] * wn;
+          dS += PRESET.sat[bi] * wn;
+          dL += PRESET.lum[bi] * wn;
+        }
+        const newH = h + dH * 0.45;
+        const newS = Math.max(0, Math.min(1, s + dS / 180));
+        const newL = Math.max(0, Math.min(1, l + dL / 180));
+        [rf, gf, bf] = hslToRgb(newH, newS, newL);
+      }
+    }
+
+    // 3. Overall saturation & vibrance
+    const [h2, s2, l2] = rgbToHsl(rf, gf, bf);
+    let newS2 = Math.max(0, Math.min(1, s2 + PRESET.saturation / 200));
+    // Vibrance: more boost for less-saturated, protect near-neutral
+    const vibBoost = (PRESET.vibrance / 100) * (1 - newS2) * 0.45;
+    newS2 = Math.max(0, Math.min(1, newS2 + vibBoost));
+    [rf, gf, bf] = hslToRgb(h2, newS2, l2);
+
+    data[i]   = Math.max(0, Math.min(255, Math.round(rf * 255)));
+    data[i+1] = Math.max(0, Math.min(255, Math.round(gf * 255)));
+    data[i+2] = Math.max(0, Math.min(255, Math.round(bf * 255)));
+  }
+
+  // 4. Film grain (applied to full canvas, not per-pixel in loop for performance)
+  addGrain(imageData, PRESET.grain);
+
+  return imageData;
+}
+
+function addGrain(imageData, amount) {
+  if (amount <= 0) return;
+  const data = imageData.data;
+  const str = amount * 0.9;
+  for (let i=0; i<data.length; i+=4) {
+    const n = (Math.random()*2-1) * str;
+    data[i]   = Math.max(0, Math.min(255, data[i]+n));
+    data[i+1] = Math.max(0, Math.min(255, data[i+1]+n));
+    data[i+2] = Math.max(0, Math.min(255, data[i+2]+n));
+  }
+}
+
+// ─── CANVAS SETUP ──────────────────────────────────────────────────────────
+const MAX_W = 1400;
+let processedBlob = null;
+
+function loadAndProcess(file) {
+  const loading = document.getElementById('loading');
+  const viewer  = document.getElementById('viewer');
+  const upload  = document.getElementById('uploadZone');
+  loading.classList.add('visible');
+  viewer.classList.add('visible');
+  upload.style.display = 'none';
+
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    // Scale down if needed
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
+
+    const cBefore = document.getElementById('canvasBefore');
+    const cAfter  = document.getElementById('canvasAfter');
+    cBefore.width  = cAfter.width  = w;
+    cBefore.height = cAfter.height = h;
+
+    // Draw original to both canvases
+    const ctxB = cBefore.getContext('2d');
+    const ctxA = cAfter.getContext('2d');
+    ctxB.drawImage(img, 0, 0, w, h);
+    ctxA.drawImage(img, 0, 0, w, h);
+
+    URL.revokeObjectURL(url);
+
+    // Process "after" asynchronously
+    setTimeout(() => {
+      const imgDataA = ctxA.getImageData(0, 0, w, h);
+      processImageData(imgDataA);
+      ctxA.putImageData(imgDataA, 0, 0);
+
+      // Prepare download blob
+      cAfter.toBlob(blob => {
+        processedBlob = blob;
+        const btnDl = document.getElementById('btnDownload');
+        btnDl.href = URL.createObjectURL(blob);
+        btnDl.removeAttribute('disabled');
+      }, 'image/jpeg', 0.95);
+
+      loading.classList.remove('visible');
+      setDividerPos(0.5);
+    }, 30);
+  };
+  img.src = url;
+}
+
+// ─── BEFORE/AFTER SLIDER ───────────────────────────────────────────────────
+let dragging = false;
+
+function setDividerPos(ratio) {
+  ratio = Math.max(0.02, Math.min(0.98, ratio));
+  const wrapper = document.getElementById('canvasWrapper');
+  const pct = (ratio * 100).toFixed(2) + '%';
+  document.getElementById('divider').style.left = pct;
+  document.getElementById('clipBefore').style.width = pct;
+}
+
+function getRatio(clientX) {
+  const r = document.getElementById('canvasWrapper').getBoundingClientRect();
+  return (clientX - r.left) / r.width;
+}
+
+const wrapper = document.getElementById('canvasWrapper');
+wrapper.addEventListener('mousedown', e => { if (e.button!==0) return; dragging=true; setDividerPos(getRatio(e.clientX)); });
+window.addEventListener('mousemove', e => { if (dragging) setDividerPos(getRatio(e.clientX)); });
+window.addEventListener('mouseup', () => dragging=false);
+
+wrapper.addEventListener('touchstart', e => { dragging=true; setDividerPos(getRatio(e.touches[0].clientX)); }, {passive:true});
+window.addEventListener('touchmove', e => { if (dragging) setDividerPos(getRatio(e.touches[0].clientX)); }, {passive:true});
+window.addEventListener('touchend', () => dragging=false);
+
+// ─── FILE INPUT ────────────────────────────────────────────────────────────
+const fileInput = document.getElementById('fileInput');
+const zone = document.getElementById('uploadZone');
+
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadAndProcess(e.target.files[0]); });
+
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadAndProcess(f);
+});
+
+document.getElementById('btnChange').addEventListener('click', () => {
+  document.getElementById('viewer').classList.remove('visible');
+  document.getElementById('uploadZone').style.display = '';
+  fileInput.value = '';
+  processedBlob = null;
+});
+
+// ─── TONAL CHARACTER STRIP ─────────────────────────────────────────────────
+(function drawTonalStrip() {
+  const c = document.getElementById('tonalCanvas');
+  c.width = 800;
+  const ctx = c.getContext('2d');
+  const steps = 200;
+  for (let i=0; i<steps; i++) {
+    const v = Math.round(i / steps * 255);
+    const out = masterLUT[v];
+    // Also apply rough saturation feel for a warm gradient
+    const brightness = out;
+    // Warm color: slight amber tint in midtones
+    const warmR = Math.min(255, brightness + (brightness > 40 ? 8 : 0));
+    const warmG = Math.min(255, brightness + (brightness > 80 ? 4 : 0));
+    const warmB = Math.min(255, Math.max(0, brightness - (brightness > 60 ? 6 : 0)));
+    ctx.fillStyle = `rgb(${warmR},${warmG},${warmB})`;
+    ctx.fillRect(Math.round(i/steps*800), 0, Math.ceil(800/steps)+1, 40);
+  }
+  // Overlaid curve info
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, 800, 40);
+  ctx.fillStyle = '#c8a46a';
+  ctx.font = '10px Outfit, sans-serif';
+  ctx.letterSpacing = '0.1em';
+  // Draw simple curve shape
+  ctx.beginPath();
+  for (let x=0; x<800; x++) {
+    const inp = Math.round(x/800*255);
+    const out = masterLUT[inp];
+    const y = 36 - (out/255)*32;
+    x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle = 'rgba(200,164,106,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Identity reference
+  ctx.beginPath();
+  ctx.moveTo(0,36); ctx.lineTo(800,4);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+})();
+</script>
+</body>
+</html>
