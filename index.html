@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>White Magic — Preset Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #fff;
+  color: #1a1a1a;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  padding: 0;
+  margin: 0;
+}
+
+.wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* HEADER */
+.preset-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 400;
+  color: #1a1a1a;
+  line-height: 1.1;
+}
+.preset-name em { font-style: italic; }
+.preset-sub {
+  font-size: 13px;
+  color: #888;
+  font-weight: 300;
+  margin-top: 6px;
+}
+
+/* UPLOAD ZONE */
+.upload-zone {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 56px 24px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: border-color .2s, background .2s;
+  background: #fafafa;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: #aaa;
+  background: #f5f5f5;
+}
+.upload-zone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.upload-icon { margin: 0 auto 14px; display: block; opacity: .25; }
+.upload-text { font-size: 14px; color: #888; line-height: 1.7; }
+.upload-text strong { color: #444; font-weight: 500; }
+.upload-hint {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 5px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* VIEWER */
+.viewer { display: none; flex-direction: column; gap: 14px; width: 100%; }
+.viewer.visible { display: flex; }
+
+/* CANVAS WRAPPER */
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #eee;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+#canvasAfter { display: block; width: 100%; height: auto; }
+
+/* BEFORE CLIP */
+.clip-before {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.clip-before canvas {
+  position: absolute;
+  top: 0; left: 0;
+  display: block;
+}
+
+/* DIVIDER */
+.divider {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(255,255,255,.95);
+  transform: translateX(-50%);
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(0,0,0,.2);
+}
+.divider-handle {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 8px rgba(0,0,0,.12);
+}
+
+/* LABELS */
+.label {
+  position: absolute;
+  top: 12px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(4px);
+  color: #444;
+  pointer-events: none;
+}
+.label-before { left: 12px; }
+.label-after  { right: 12px; }
+
+/* CONTROLS */
+.controls { display: flex; align-items: center; gap: 10px; }
+.btn-change {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #888;
+  background: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+  letter-spacing: .02em;
+}
+.btn-change:hover { border-color: #aaa; color: #333; }
+
+/* LOADING */
+.loading {
+  display: none;
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,.88);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: 8px;
+  backdrop-filter: blur(2px);
+}
+.loading.visible { display: flex; }
+.spinner {
+  width: 22px; height: 22px;
+  border: 1.5px solid #ddd;
+  border-top-color: #333;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 11px; color: #aaa; letter-spacing: .1em; text-transform: uppercase; }
+
+@media (max-width: 500px) {
+  .wrap { padding: 24px 16px 36px; gap: 18px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="preset-name">White <em>Magic</em></div>
+    <div class="preset-sub">Sube tu foto para ver el preset aplicado — arrastra el slider para comparar</div>
+  </div>
+
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*">
+    <svg class="upload-icon" width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <path d="M17 23V11M11 17l6-6 6 6" stroke="#1a1a1a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="2.5" y="2.5" width="29" height="29" rx="7" stroke="#1a1a1a" stroke-width="1.2" opacity=".25"/>
+    </svg>
+    <div class="upload-text"><strong>Arrastra tu foto aquí</strong><br>o haz clic para seleccionar</div>
+    <div class="upload-hint">JPG · PNG · WEBP</div>
+  </div>
+
+  <div class="viewer" id="viewer">
+    <div class="canvas-wrapper" id="canvasWrapper">
+      <canvas id="canvasAfter"></canvas>
+      <div class="clip-before" id="clipBefore">
+        <canvas id="canvasBefore"></canvas>
+      </div>
+      <div class="divider" id="divider">
+        <div class="divider-handle">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M4 3L2 6.5l2 3.5M9 3l2 3.5L9 10" stroke="#666" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <span class="label label-before">Antes</span>
+      <span class="label label-after">Después</span>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Aplicando preset…</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn-change" id="btnChange">Cambiar foto</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const P = {
+  exposure: 0.25, contrast: 7, highlights: -59, shadows: 69,
+  whites: 9, blacks: -36, vibrance: 14, saturation: -10, grain: 8,
+  curve: [[0,41],[48,53],[111,104],[158,166],[206,230],[255,255]],
+  hue: [ 40,  -4, -70, -31,  25, -10,  38,  26],
+  sat: [ 25,  37,  31, -21, -31, -48, -50,  14],
+  lum: [ 14,  25,  41, -11,  63,  25, -32, -45],
+};
+
+const BANDS = [
+  {c:0,hw:30},{c:30,hw:25},{c:60,hw:25},{c:112,hw:52},
+  {c:172,hw:38},{c:225,hw:52},{c:275,hw:35},{c:305,hw:25},
+];
+
+const hueDist = (a,b) => { const d=Math.abs(a-b); return Math.min(d,360-d); };
+const toLinear = v => v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4);
+const toSRGB   = v => v<=0.0031308 ? v*12.92 : 1.055*Math.pow(v,1/2.4)-0.055;
+
+function rgbToHsl(r,g,b){
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),l=(max+min)/2;
+  if(max===min) return [0,0,l];
+  const d=max-min,s=l>0.5?d/(2-max-min):d/(max+min);
+  let h=(r===max)?(g-b)/d+(g<b?6:0):(g===max)?(b-r)/d+2:(r-g)/d+4;
+  return [h*60,s,l];
+}
+function hslToRgb(h,s,l){
+  h=((h%360)+360)%360;
+  if(s===0) return [l,l,l];
+  const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q,hk=h/360;
+  return [hk+1/3,hk,hk-1/3].map(t=>{
+    if(t<0)t+=1;if(t>1)t-=1;
+    if(t<1/6) return p+(q-p)*6*t;
+    if(t<1/2) return q;
+    if(t<2/3) return p+(q-p)*(2/3-t)*6;
+    return p;
+  });
+}
+
+function buildCurveLUT(pts){
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),n=pts.length;
+  const d=[],ms=new Array(n);
+  for(let i=0;i<n-1;i++) d.push((ys[i+1]-ys[i])/(xs[i+1]-xs[i]));
+  ms[0]=d[0];ms[n-1]=d[n-2];
+  for(let i=1;i<n-1;i++) ms[i]=(d[i-1]+d[i])/2;
+  for(let i=0;i<n-1;i++){
+    if(!d[i]){ms[i]=ms[i+1]=0;continue;}
+    const a=ms[i]/d[i],b=ms[i+1]/d[i],hh=Math.sqrt(a*a+b*b);
+    if(hh>3){ms[i]=3*a/hh*d[i];ms[i+1]=3*b/hh*d[i];}
+  }
+  const lut=new Uint8Array(256);
+  for(let x=0;x<256;x++){
+    if(x<=xs[0]){lut[x]=Math.round(ys[0]);continue;}
+    if(x>=xs[n-1]){lut[x]=Math.round(ys[n-1]);continue;}
+    let seg=0;for(let i=0;i<n-2;i++) if(x>=xs[i+1]) seg=i+1;
+    const hw=xs[seg+1]-xs[seg],t=(x-xs[seg])/hw,t2=t*t,t3=t2*t;
+    const y=(2*t3-3*t2+1)*ys[seg]+(t3-2*t2+t)*hw*ms[seg]+(-2*t3+3*t2)*ys[seg+1]+(t3-t2)*hw*ms[seg+1];
+    lut[x]=Math.max(0,Math.min(255,Math.round(y)));
+  }
+  return lut;
+}
+const CURVE_LUT = buildCurveLUT(P.curve);
+
+function processImageData(imageData){
+  const d=imageData.data,len=d.length;
+  const expF=Math.pow(2,P.exposure);
+
+  for(let i=0;i<len;i+=4){
+    let r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255;
+
+    // sRGB → lineal
+    let rl=toLinear(r),gl=toLinear(g),bl=toLinear(b);
+
+    // Exposure en lineal
+    rl*=expF;gl*=expF;bl*=expF;
+
+    // Luminancia para pesos
+    const lum=0.2126*rl+0.7152*gl+0.0722*bl;
+    const shadowW=Math.pow(Math.max(0,1-lum*3),2);
+    const hiliteW=Math.pow(Math.max(0,lum*2-1),2);
+    const blackW =Math.pow(Math.max(0,0.25-lum)/0.25,2);
+    const whiteW =Math.pow(Math.max(0,lum-0.75)/0.25,2);
+
+    const adj=(P.shadows/100)*0.28*shadowW
+             +(P.highlights/100)*0.28*hiliteW
+             +(P.blacks/100)*0.12*blackW
+             +(P.whites/100)*0.08*whiteW;
+
+    rl=Math.max(0,rl+adj);gl=Math.max(0,gl+adj);bl=Math.max(0,bl+adj);
+
+    // Contrast en lineal
+    const k=P.contrast/100*0.25,mid=0.18;
+    const con=v=>Math.max(0,v+k*(v-mid));
+    rl=con(rl);gl=con(gl);bl=con(bl);
+
+    // Lineal → sRGB
+    r=Math.min(1,toSRGB(rl));g=Math.min(1,toSRGB(gl));b=Math.min(1,toSRGB(bl));
+
+    // Tone curve
+    r=CURVE_LUT[Math.round(r*255)]/255;
+    g=CURVE_LUT[Math.round(g*255)]/255;
+    b=CURVE_LUT[Math.round(b*255)]/255;
+
+    // HSL per-hue
+    const [h,s,l]=rgbToHsl(r,g,b);
+    if(s>0.015){
+      let wT=0;
+      const ws=BANDS.map(band=>{
+        const dist=hueDist(h,band.c);
+        const w=Math.max(0,1-Math.pow(dist/band.hw,2));
+        wT+=w;return w;
+      });
+      if(wT>0.01){
+        let dH=0,dS=0,dL=0;
+        for(let bi=0;bi<8;bi++){
+          const wn=ws[bi]/wT;
+          dH+=P.hue[bi]*wn;dS+=P.sat[bi]*wn;dL+=P.lum[bi]*wn;
+        }
+        const nH=h+dH*0.5;
+        const nS=Math.max(0,Math.min(1,s+dS/100*0.8));
+        const nL=Math.max(0,Math.min(1,l+dL/100*0.5));
+        [r,g,b]=hslToRgb(nH,nS,nL);
+      }
+    }
+
+    // Saturation + Vibrance
+    const [h2,s2,l2]=rgbToHsl(r,g,b);
+    let ns=Math.max(0,Math.min(1,s2+P.saturation/100*0.5));
+    ns=Math.max(0,Math.min(1,ns+(P.vibrance/100)*(1-ns)*0.5));
+    [r,g,b]=hslToRgb(h2,ns,l2);
+
+    d[i]=Math.max(0,Math.min(255,Math.round(r*255)));
+    d[i+1]=Math.max(0,Math.min(255,Math.round(g*255)));
+    d[i+2]=Math.max(0,Math.min(255,Math.round(b*255)));
+  }
+
+  // Grain
+  if(P.grain>0){
+    const str=P.grain*0.7;
+    for(let i=0;i<len;i+=4){
+      const n=(Math.random()*2-1)*str;
+      d[i]=Math.max(0,Math.min(255,d[i]+n));
+      d[i+1]=Math.max(0,Math.min(255,d[i+1]+n));
+      d[i+2]=Math.max(0,Math.min(255,d[i+2]+n));
+    }
+  }
+  return imageData;
+}
+
+const MAX_W=1400;
+function loadAndProcess(file){
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('viewer').classList.add('visible');
+  document.getElementById('uploadZone').style.display='none';
+
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    let w=img.naturalWidth,h=img.naturalHeight;
+    if(w>MAX_W){h=Math.round(h*MAX_W/w);w=MAX_W;}
+    const cB=document.getElementById('canvasBefore'),cA=document.getElementById('canvasAfter');
+    cB.width=cA.width=w;cB.height=cA.height=h;
+    const ctxB=cB.getContext('2d'),ctxA=cA.getContext('2d');
+    ctxB.drawImage(img,0,0,w,h);ctxA.drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    setTimeout(()=>{
+      const data=ctxA.getImageData(0,0,w,h);
+      processImageData(data);
+      ctxA.putImageData(data,0,0);
+      setTimeout(()=>{
+        const dW=cA.offsetWidth,dH=cA.offsetHeight;
+        cB.style.width=dW+'px';cB.style.height=dH+'px';
+      },30);
+      document.getElementById('loading').classList.remove('visible');
+      setDivider(0.5);
+    },30);
+  };
+  img.src=url;
+}
+
+let dragging=false;
+function setDivider(r){
+  r=Math.max(0.02,Math.min(0.98,r));
+  const pct=(r*100).toFixed(2)+'%';
+  document.getElementById('divider').style.left=pct;
+  document.getElementById('clipBefore').style.width=pct;
+}
+function getRatio(x){
+  const r=document.getElementById('canvasWrapper').getBoundingClientRect();
+  return(x-r.left)/r.width;
+}
+const W=document.getElementById('canvasWrapper');
+W.addEventListener('mousedown',e=>{if(e.button!==0)return;dragging=true;setDivider(getRatio(e.clientX));});
+window.addEventListener('mousemove',e=>{if(dragging)setDivider(getRatio(e.clientX));});
+window.addEventListener('mouseup',()=>dragging=false);
+W.addEventListener('touchstart',e=>{dragging=true;setDivider(getRatio(e.touches[0].clientX));},{passive:true});
+window.addEventListener('touchmove',e=>{if(dragging)setDivider(getRatio(e.touches[0].clientX));},{passive:true});
+window.addEventListener('touchend',()=>dragging=false);
+
+const fi=document.getElementById('fileInput'),zone=document.getElementById('uploadZone');
+fi.addEventListener('change',e=>{if(e.target.files[0])loadAndProcess(e.target.files[0]);});
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop',e=>{
+  e.preventDefault();zone.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/'))loadAndProcess(f);
+});
+document.getElementById('btnChange').addEventListener('click',()=>{
+  document.getElementById('viewer').classList.remove('visible');
+  document.getElementById('uploadZone').style.display='';
+  fi.value='';
+});
+</script>
+</body>
+</html>
